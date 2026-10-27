@@ -1,0 +1,528 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minecraft Image Builder</title>
+<style>
+  :root { --bg:#f6f7f4; --card:#fff; --ink:#1d2320; --muted:#667069; --line:#dfe3dc; --accent:#3f8f3f; --accent-ink:#fff; --bad:#b3372f; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#161a17; --card:#1f2521; --ink:#e8ece6; --muted:#98a39b; --line:#2f3832; --accent:#5fb35f; --accent-ink:#0c140c; --bad:#e8786f; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui, sans-serif; }
+  main { max-width:960px; margin:0 auto; padding:24px 16px 64px; }
+  header { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+  h1 { font-size:22px; margin:0; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 12px; }
+  .pill { padding:4px 12px; border-radius:99px; font-size:13px; border:1px solid var(--line); background:var(--card); }
+  .pill::before { content:""; display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--bad); margin-right:8px; }
+  .pill.on::before { background:var(--accent); }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:20px; }
+  @media (max-width:760px) { .grid { grid-template-columns:1fr; } }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  #drop { border:2px dashed var(--line); border-radius:10px; padding:28px 12px; text-align:center; color:var(--muted); cursor:pointer; }
+  #drop.over { border-color:var(--accent); color:var(--ink); }
+  label { display:block; font-size:13px; color:var(--muted); margin:14px 0 4px; }
+  select, input[type=range] { width:100%; }
+  select { padding:6px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--ink); }
+  .row { display:flex; gap:16px; flex-wrap:wrap; }
+  .row label.chk { display:flex; align-items:center; gap:6px; margin:10px 0 0; color:var(--ink); }
+  button { font:inherit; padding:8px 16px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); cursor:pointer; }
+  button.primary { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:600; }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+  #previewWrap { background:repeating-conic-gradient(#8883 0 25%, transparent 0 50%) 0 0/16px 16px; border-radius:8px; min-height:120px; display:flex; align-items:center; justify-content:center; }
+  #preview { max-width:100%; image-rendering:pixelated; }
+  .muted { color:var(--muted); font-size:13px; }
+  .dropbox { border:2px dashed var(--line); border-radius:10px; padding:22px 12px; text-align:center; color:var(--muted); cursor:pointer; }
+  .dropbox.over { border-color:var(--accent); color:var(--ink); }
+  .thumb { width:56px; height:56px; object-fit:cover; border-radius:6px; border:1px solid var(--line); }
+  .mats { margin:12px 0 0; padding:0; list-style:none; max-height:180px; overflow:auto; font-size:13px; }
+  .mats li { display:flex; align-items:center; gap:8px; padding:2px 0; }
+  .sw { width:14px; height:14px; border-radius:3px; border:1px solid #0003; flex:none; }
+  #bar { height:8px; background:var(--line); border-radius:99px; overflow:hidden; margin:10px 0 6px; }
+  #bar > div { height:100%; width:0; background:var(--accent); transition:width .2s; }
+  #msg { margin-top:10px; font-size:13px; }
+  #msg.err, .err { color:var(--bad); }
+  .lib { display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:10px; }
+  .lib button { text-align:left; padding:10px 12px; }
+  .lib b { display:block; }
+  .lib small { color:var(--muted); display:block; font-size:12px; line-height:1.3; margin-top:2px; }
+  .btn { display:inline-block; font:inherit; padding:8px 16px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--ink); text-decoration:none; }
+  textarea { width:100%; margin-top:10px; padding:8px; border-radius:6px; border:1px solid var(--line); background:var(--bg); color:var(--ink); font:12px/1.4 ui-monospace, monospace; }
+  #dock { position:fixed; left:0; right:0; bottom:0; display:flex; gap:12px; align-items:center; padding:10px 16px; background:var(--card); border-top:1px solid var(--line); }
+  #dock[hidden] { display:none; }
+  .bar { margin-top:12px; display:flex; gap:16px; flex-wrap:wrap; padding:8px 16px 12px; }
+  .bar > div { flex:1; min-width:200px; }
+  .hist { margin:10px 0 0; padding-left:20px; font-size:13px; color:var(--muted); max-height:130px; overflow:auto; }
+  #send + select { padding:8px 6px; }
+  .tabs { display:flex; gap:6px; flex-wrap:wrap; margin:14px 0 12px; align-items:center; }
+  .tabs .sep { flex:0 0 1px; align-self:stretch; background:var(--line); margin:0 6px; }
+  .tab { padding:8px 14px; }
+  .tab small { display:block; font-size:11px; color:var(--muted); }
+  .tab.on { background:var(--accent); color:var(--accent-ink); border-color:var(--accent); font-weight:600; }
+  .tab.on small { color:var(--accent-ink); }
+  .tab.ai:not(.on) { border-style:dashed; border-color:var(--bad); }
+  .panel[hidden], #card3d[hidden] { display:none; }
+  .warn { border:1px solid var(--bad); border-radius:8px; padding:10px 12px; margin-bottom:12px; font-size:13px; display:flex; flex-direction:column; gap:6px; }
+  .warn .chk { display:flex; align-items:center; gap:6px; margin:0; color:var(--ink); font-size:14px; }
+  code { background:var(--bg); padding:1px 4px; border-radius:4px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Minecraft Image Builder</h1>
+    <span id="conn" class="pill">Not connected</span>
+  </header>
+  <p class="muted" id="hint">In Minecraft (cheats on) run <b>/connect localhost:19131</b>. Then stand in an open area, facing the direction you chose here, and stay still while it builds.</p>
+
+  <div class="card bar">
+    <div><label>I'm facing</label>
+      <select id="facing"><option>south</option><option>north</option><option>east</option><option>west</option></select></div>
+    <div><label>Block names <span class="muted">(switch if you see "Block not found")</span></label>
+      <select id="syntax"><option value="legacy">Legacy (concrete 3)</option><option value="modern">Modern (light_blue_concrete)</option></select></div>
+    <div><label>Position <span class="muted">(centered is best for huge builds)</span></label>
+      <select id="place"><option value="front">In front of me</option><option value="center">Centered on me</option></select></div>
+  </div>
+
+  <nav class="tabs">
+    <button class="tab" data-tab="quick">Quick builds</button>
+    <button class="tab" data-tab="import">Import</button>
+    <button class="tab" data-tab="pixel">Pixel art</button>
+    <span class="sep"></span>
+    <button class="tab ai" data-tab="ai">AI: Describe &amp; edit <small>uses credits</small></button>
+    <button class="tab ai" data-tab="photos">AI: From photos <small>uses credits</small></button>
+  </nav>
+
+  <div class="panel" id="panel-quick">
+  <section class="card">
+    <h2>Quick builds</h2>
+    <p class="muted" style="margin-top:0">Free. Pick one to load it in the viewer below, then build it. (To change one with a prompt, use the AI tab.)</p>
+    <div class="lib" id="lib"></div>
+  </section>
+
+  </div>
+
+  <div class="panel" id="panel-import" hidden>
+  <section class="card">
+      <h2>Import a build (no API needed)</h2>
+      <p class="muted" style="margin-top:0">Load a build file (.json), or paste JSON or <b>fill</b>/<b>setblock</b> commands. Commands are relative to you (<code>~ ~ ~</code>).</p>
+      <div id="dropImp" class="dropbox">Drop a .json / .mcfunction / .txt file, or click to choose<input id="fileImp" type="file" accept=".json,.txt,.mcfunction,text/*" hidden></div>
+      <textarea id="paste" rows="5" placeholder="...or paste build JSON / commands here"></textarea>
+      <div style="margin-top:10px;display:flex;gap:8px"><button id="import" class="primary">Import</button></div>
+      <details style="margin-top:14px">
+        <summary>Get build ideas from any AI chat</summary>
+        <p class="muted">Copy this prompt into ChatGPT, Claude.ai, Gemini or similar, attach a photo or describe what you want, then paste its JSON reply above.</p>
+        <button id="copyPrompt">Copy prompt</button>
+      </details>
+    </section>
+
+  </div>
+
+  <div class="panel" id="panel-pixel" hidden>
+  <div class="grid">
+    <section class="card">
+      <h2>1 Â· Image</h2>
+      <div id="drop">Drop an image here, or click to choose<input id="file" type="file" accept="image/*" hidden></div>
+
+      <label>Width: <b id="wv">48</b> blocks</label>
+      <input id="width" type="range" min="8" max="256" value="48">
+
+      <label>Block types</label>
+      <div class="row">
+        <label class="chk"><input type="checkbox" class="fam" value="concrete" checked> Concrete</label>
+        <label class="chk"><input type="checkbox" class="fam" value="wool"> Wool</label>
+        <label class="chk"><input type="checkbox" class="fam" value="terracotta"> Terracotta</label>
+        <label class="chk"><input type="checkbox" id="dither"> Dithering</label>
+      </div>
+
+      <h2 style="margin-top:22px">2 Â· Placement</h2>
+      <div class="row">
+        <div style="flex:1;min-width:140px"><label>Orientation</label>
+          <select id="mode"><option value="wall">Upright wall</option><option value="floor">Flat on ground</option></select></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Preview</h2>
+      <div id="previewWrap"><span class="muted" id="ph">Nothing yet</span><img id="preview" alt="" hidden></div>
+      <div class="muted" id="stats"></div>
+      <ul id="mats" class="mats"></ul>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <button id="build" class="primary" disabled>Build in Minecraft</button>
+      </div>
+      <div id="why" class="err" style="margin-top:8px;font-size:13px"></div>
+      <div id="msg"></div>
+    </section>
+  </div>
+
+  </div>
+
+  <div class="panel" id="panel-ai" hidden>
+    <section class="card">
+      <h2>Describe it, then change it</h2>
+      <div class="warn">
+        <b>Uses API credits.</b> Every request here is billed to your Anthropic account.
+        <label class="chk"><input type="checkbox" class="unlock"> Unlock AI features for this session</label>
+        <span class="muted">API requests this session: <b class="aicalls">0</b></span>
+      </div>
+      <textarea id="prompt" rows="4" style="font:14px/1.4 system-ui, sans-serif" placeholder="Describe a build, e.g. a medieval tavern with a thatched roof, a stable and a market square"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">
+        <button id="send" class="primary" disabled>Generate</button>
+        <select id="csize" title="Size for a new build"><option value="24">Small</option><option value="32" selected>Medium</option><option value="48">Large</option><option value="64">Huge</option><option value="128">Massive</option><option value="200">Colossal</option></select>
+        <button id="undo" disabled>Undo</button>
+        <button id="newBuild">Start new</button>
+      </div>
+      <div id="aimsg" style="margin-top:8px;font-size:13px"></div>
+      <div class="muted" id="aiwarn" style="margin-top:6px"></div>
+      <ol id="history" class="hist"></ol>
+      <p class="muted" style="margin:10px 0 0">Once a build is loaded in the viewer below, what you type changes it (Undo is free). Each generate or change is one paid request.</p>
+    </section>
+  </div>
+
+  <div class="panel" id="panel-photos" hidden>
+    <section class="card">
+      <h2>Design from photos</h2>
+      <div class="warn">
+        <b>Uses API credits.</b> Every request here is billed to your Anthropic account.
+        <label class="chk"><input type="checkbox" class="unlock"> Unlock AI features for this session</label>
+        <span class="muted">API requests this session: <b class="aicalls">0</b></span>
+      </div>
+      <p class="muted" style="margin-top:0">Needs an Anthropic API key. Upload 1-4 photos or screenshots of a building (different angles help) and Claude designs a block version.</p>
+      <div id="drop3d" class="dropbox">Drop photos here, or click to choose<input id="file3d" type="file" accept="image/*" multiple hidden></div>
+      <div id="thumbs" class="row" style="margin-top:8px;gap:6px"></div>
+      <label>Notes (optional)</label>
+      <input id="notes" type="text" placeholder="e.g. castle with four corner towers, use stone bricks" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink)">
+      <label>Max size: <b id="sv">32</b> blocks per side</label>
+      <input id="size" type="range" min="12" max="256" value="32">
+      <div style="margin-top:14px"><button id="design" class="primary" disabled>Design 3D build</button></div>
+    </section>
+
+  </div>
+
+  <section class="card" id="card3d" style="margin-top:16px">
+    <h2>3D viewer</h2>
+    <div class="grid" style="margin-top:0">
+      <div>
+        <div style="border-radius:8px;border:1px solid var(--line)">
+          <canvas id="cv" width="560" height="420" style="width:100%;display:block"></canvas>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+          <button id="rotL" title="Rotate left">âŸ²</button><button id="rotR" title="Rotate right">âŸ³</button>
+          <label class="chk" style="margin:0 0 0 6px;display:flex;gap:6px;align-items:center;color:var(--ink)"><input type="checkbox" id="hl" checked> Highlight changes</label>
+        </div>
+      </div>
+      <div>
+        <div id="name3d" style="font-weight:600"></div>
+        <div id="msg3d" class="muted" style="margin:2px 0 6px">Nothing loaded yet. Pick a quick build, import one, or use an AI tab.</div>
+        <div class="muted" id="stats3d"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+          <button id="build3d" class="primary" disabled>Build in Minecraft</button>
+          <a id="export3d" class="btn" hidden>Download JSON</a>
+        </div>
+        <div id="why3d" class="err" style="margin-top:8px;font-size:13px"></div>
+        <p class="muted" style="margin:8px 0 0">Building is free. Stand still while it builds.</p>
+        <ul id="mats3d" class="mats"></ul>
+      </div>
+    </div>
+  </section>
+
+  <div style="height:70px"></div>
+</main>
+<div id="dock" hidden>
+  <div style="flex:1;min-width:0"><div id="bar"><div></div></div><div id="progress" class="muted"></div></div>
+  <button id="cancel" disabled>Cancel</button>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+let previewId = null, file = null, status = {}, aiUnlocked = false, aiBusy = false;
+
+function say(text, err) { $('msg').textContent = text || ''; $('msg').className = err ? 'err' : ''; }
+
+async function api(path, opts) {
+  const r = await fetch(path, opts);
+  if (!r.ok) throw new Error((await r.text()) || r.statusText);
+  return r.json();
+}
+const post = (path, body, extra = {}) => api(path, { method:'POST', headers:{'Content-Type':'application/json', ...extra}, body:JSON.stringify(body) });
+// AI requests carry this header only while the user has ticked the unlock box
+const CREDITS = () => aiUnlocked ? { 'X-Credits-OK': '1' } : {};
+
+function updateButtons() {
+  const running = status.job && status.job.running;
+  $('build').disabled = !previewId || !status.connected || running;
+  $('cancel').disabled = !running;
+  $('build3d').disabled = !designId || !status.connected || running;
+  const why = !status.connected ? "Build is disabled because Minecraft isn't connected. In Minecraft (cheats on) run /connect localhost:19131."
+            : running ? 'A build is already running. Wait for it to finish or cancel it.' : '';
+  $('why3d').textContent = designId ? why : '';
+  $('why').textContent = previewId ? why : '';
+  $('send').disabled = !aiUnlocked || aiBusy;
+  $('design').disabled = !aiUnlocked || aiBusy || !files3d.length;
+  document.querySelectorAll('.aicalls').forEach(e => e.textContent = status.ai_calls || 0);
+  $('aiwarn').textContent = status.ai === false ? 'Generating needs an Anthropic API key: add ANTHROPIC_API_KEY to .env and restart builder.py.' : '';
+}
+
+async function poll() {
+  try { status = await api('/api/status'); } catch { status = {}; }
+  $('conn').textContent = status.connected ? 'Minecraft connected' : 'Not connected';
+  $('conn').classList.toggle('on', !!status.connected);
+  const j = status.job;
+  if (j) {
+    $('dock').hidden = false;
+    $('bar').firstElementChild.style.width = (100 * j.sent / Math.max(1, j.total)) + '%';
+    let t = `${j.label}: ${j.sent} / ${j.total} commands` + (j.running ? '' : ' â€” finished');
+    if (j.errors) t += ` Â· ${j.errors} failed (${j.last_error || 'unknown'})`;
+    $('progress').textContent = t;
+  }
+  updateButtons();
+}
+setInterval(poll, 700); poll();
+
+let timer;
+async function makePreview() {
+  if (!file) return;
+  const fams = [...document.querySelectorAll('.fam:checked')].map(c => c.value);
+  if (!fams.length) return say('Pick at least one block type', true);
+  const fd = new FormData();
+  fd.append('image', file);
+  fd.append('width', $('width').value);
+  fd.append('dither', $('dither').checked ? '1' : '0');
+  fd.append('families', fams.join(','));
+  say('Converting...');
+  try {
+    const d = await api('/api/preview', { method:'POST', body:fd });
+    previewId = d.id;
+    $('preview').src = d.image; $('preview').hidden = false; $('ph').hidden = true;
+    const total = d.blocks.reduce((s, b) => s + b.count, 0);
+    $('stats').textContent = `${d.width} Ã— ${d.height} Â· ${total} blocks Â· ${d.commands} commands`;
+    $('mats').innerHTML = '';
+    d.blocks.forEach(b => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="sw" style="background:rgb(${b.rgb})"></span><span>${b.name}</span><span class="muted" style="margin-left:auto">${b.count}</span>`;
+      $('mats').appendChild(li);
+    });
+    say('');
+  } catch (e) { previewId = null; say(e.message, true); }
+  updateButtons();
+}
+const schedule = () => { clearTimeout(timer); timer = setTimeout(makePreview, 250); };
+
+function setFile(f) { if (f) { file = f; $('drop').firstChild.textContent = f.name; makePreview(); } }
+$('drop').onclick = () => $('file').click();
+$('file').onchange = e => setFile(e.target.files[0]);
+$('drop').ondragover = e => { e.preventDefault(); $('drop').classList.add('over'); };
+$('drop').ondragleave = () => $('drop').classList.remove('over');
+$('drop').ondrop = e => { e.preventDefault(); $('drop').classList.remove('over'); setFile(e.dataTransfer.files[0]); };
+document.addEventListener('paste', e => { const f = [...e.clipboardData.files].find(f => f.type.startsWith('image/')); if (f) setFile(f); });
+
+$('width').oninput = () => { $('wv').textContent = $('width').value; schedule(); };
+$('dither').onchange = schedule;
+document.querySelectorAll('.fam').forEach(c => c.onchange = schedule);
+
+$('build').onclick = () => post('/api/build', {
+  id: previewId, mode: $('mode').value, facing: $('facing').value, syntax: $('syntax').value,
+}).then(() => say('Building â€” stay where you are')).catch(e => say(e.message, true));
+$('cancel').onclick = () => post('/api/cancel', {});
+// ---------- 3D from photos ----------
+let files3d = [], designId = null, design = null, rot = 0, thumbUrls = [];
+const say3d = (t, err) => { for (const id of ['msg3d', 'aimsg']) { $(id).textContent = t || ''; $(id).className = err ? 'err' : (id === 'msg3d' ? 'muted' : ''); } };
+
+function setFiles3d(list) {
+  files3d = [...list].filter(f => f.type.startsWith('image/')).slice(0, 4);
+  $('thumbs').innerHTML = '';
+  thumbUrls.forEach(u => URL.revokeObjectURL(u));
+  thumbUrls = files3d.map(f => URL.createObjectURL(f));
+  thumbUrls.forEach(u => {
+    const i = document.createElement('img');
+    i.className = 'thumb'; i.src = u;
+    $('thumbs').appendChild(i);
+  });
+  updateButtons();
+}
+$('drop3d').onclick = () => $('file3d').click();
+$('file3d').onchange = e => setFiles3d(e.target.files);
+$('drop3d').ondragover = e => { e.preventDefault(); $('drop3d').classList.add('over'); };
+$('drop3d').ondragleave = () => $('drop3d').classList.remove('over');
+$('drop3d').ondrop = e => { e.preventDefault(); $('drop3d').classList.remove('over'); setFiles3d(e.dataTransfer.files); };
+$('size').oninput = () => { $('sv').textContent = $('size').value; };
+
+let undoStack = [];
+const addHistory = text => { const li = document.createElement('li'); li.textContent = text; $('history').appendChild(li); };
+
+// show any loaded build (library, import, photos, or text) in the 3D viewer
+function showDesign(d) {
+  design = d.raw ? null : d; designId = d.id; rot = 0;
+  $('name3d').textContent = d.name;
+  say3d(d.description);
+  $('mats3d').innerHTML = '';
+  if (d.raw) {
+    draw();
+    $('stats3d').textContent = `${d.commands} commands (no preview, and it can't be edited by prompt)`;
+    $('export3d').hidden = true;
+  } else {
+    draw();
+    $('stats3d').textContent = `${d.size.join(' Ã— ')} Â· ${d.blocks} blocks Â· ${d.commands} commands`
+      + (d.changed ? ` Â· ${d.changed} blocks changed` : '');
+    d.palette.forEach(b => {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="sw" style="background:rgb(${b.rgb})"></span><span>${b.name}</span><span class="muted" style="margin-left:auto">${b.count}</span>`;
+      $('mats3d').appendChild(li);
+    });
+    $('export3d').href = '/api/export?id=' + d.id;
+    $('export3d').hidden = false;
+  }
+  $('send').textContent = design ? 'Apply change' : 'Generate';
+  $('prompt').placeholder = design
+    ? 'Describe a change, e.g. add a second floor with a balcony, or make the roof red'
+    : 'Describe a build, e.g. a medieval tavern with a thatched roof, a stable and a market square';
+  $('csize').hidden = !!design;
+  $('undo').disabled = !undoStack.length;
+  updateButtons();
+}
+
+// load a fresh build as the new starting point (clears the edit history)
+async function loadFrom(promise, busyText) {
+  $('build3d').disabled = true;
+  say3d(busyText);
+  $('card3d').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  try {
+    const d = await promise;
+    undoStack = []; $('history').innerHTML = '';
+    showDesign(d);
+  } catch (e) { say3d(e.message, true); updateButtons(); }
+}
+
+$('send').onclick = async () => {
+  const text = $('prompt').value.trim();
+  if (!text) return say3d('Type what you want first.', true);
+  const prev = design;
+  aiBusy = true; updateButtons();
+  say3d(prev ? 'Claude is changing the build. This can take a minute or two...'
+             : 'Claude is designing your build. This can take a few minutes...');
+  try {
+    const d = await post('/api/text_design', prev ? { id: prev.id, prompt: text }
+                                                  : { prompt: text, size: +$('csize').value }, CREDITS());
+    if (prev) undoStack.push(prev);
+    addHistory((prev ? 'Change: ' : 'Start: ') + text);
+    $('prompt').value = '';
+    showDesign(d);
+  } catch (e) { say3d(e.message, true); }
+  aiBusy = false; updateButtons();
+};
+$('prompt').onkeydown = e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) $('send').click(); };
+$('undo').onclick = () => {
+  const d = undoStack.pop();
+  if (!d) return;
+  $('history').lastElementChild && $('history').lastElementChild.remove();
+  showDesign(d);
+};
+$('newBuild').onclick = () => {
+  design = null; designId = null; undoStack = []; $('history').innerHTML = '';
+  $('name3d').textContent = ''; $('mats3d').innerHTML = ''; $('export3d').hidden = true;
+  $('stats3d').textContent = 'Nothing loaded yet';
+  say3d('Describe a build below, or pick a quick build, import one, or use photos.');
+  $('send').textContent = 'Generate'; $('csize').hidden = false; $('undo').disabled = true;
+  draw(); updateButtons();
+};
+
+$('design').onclick = async () => {
+  const fd = new FormData();
+  files3d.forEach(f => fd.append('image', f));
+  fd.append('hint', $('notes').value);
+  fd.append('size', $('size').value);
+  aiBusy = true; updateButtons();
+  await loadFrom(api('/api/design', { method: 'POST', body: fd, headers: CREDITS() }),
+                 'Claude is studying the photos and designing the build. This can take a few minutes...');
+  aiBusy = false; updateButtons();
+};
+
+// quick builds
+api('/api/library').then(list => list.forEach(b => {
+  const btn = document.createElement('button');
+  btn.innerHTML = `<b></b><small></small><small></small>`;
+  btn.children[0].textContent = b.name;
+  btn.children[1].textContent = b.size.join(' Ã— ') + ' blocks';
+  btn.children[2].textContent = b.description;
+  btn.onclick = () => loadFrom(post('/api/library/load', { id: b.id }), 'Loading ' + b.name + '...');
+  $('lib').appendChild(btn);
+})).catch(() => {});
+
+// import
+async function doImport(text, file) {
+  const fd = new FormData();
+  if (file) fd.append('file', file);
+  if (text) fd.append('text', new Blob([text]), 'paste.txt');
+  if (!file && !text.trim()) return say3d('Choose a file or paste something first.', true);
+  await loadFrom(api('/api/import', { method: 'POST', body: fd }), 'Importing...');
+}
+$('import').onclick = () => doImport($('paste').value, null);
+$('dropImp').onclick = () => $('fileImp').click();
+$('fileImp').onchange = e => e.target.files[0] && doImport('', e.target.files[0]);
+$('dropImp').ondragover = e => { e.preventDefault(); $('dropImp').classList.add('over'); };
+$('dropImp').ondragleave = () => $('dropImp').classList.remove('over');
+$('dropImp').ondrop = e => { e.preventDefault(); $('dropImp').classList.remove('over'); if (e.dataTransfer.files[0]) doImport('', e.dataTransfer.files[0]); };
+$('copyPrompt').onclick = async () => {
+  const { prompt } = await api('/api/format');
+  try { await navigator.clipboard.writeText(prompt); $('copyPrompt').textContent = 'Copied!'; }
+  catch { $('paste').value = prompt; $('copyPrompt').textContent = 'Copy it from the box above'; }
+};
+$('build3d').onclick = () => post('/api/build_design', { id: designId, facing: $('facing').value, syntax: $('syntax').value, center: $('place').value === 'center' })
+  .then(() => say3d('Building. Stay where you are.')).catch(e => say3d(e.message, true));
+document.querySelectorAll('.unlock').forEach(c => c.onchange = () => {
+  aiUnlocked = c.checked;
+  document.querySelectorAll('.unlock').forEach(o => { o.checked = aiUnlocked; });
+  updateButtons();
+});
+const tabs = [...document.querySelectorAll('.tab')];
+function showTab(name) {
+  tabs.forEach(t => t.classList.toggle('on', t.dataset.tab === name));
+  document.querySelectorAll('.panel').forEach(p => { p.hidden = p.id !== 'panel-' + name; });
+  $('card3d').hidden = name === 'pixel';
+  try { localStorage.setItem('tab', name); } catch {}
+}
+tabs.forEach(t => t.onclick = () => showTab(t.dataset.tab));
+let startTab = 'quick';
+try { startTab = localStorage.getItem('tab') || 'quick'; } catch {}
+showTab(tabs.some(t => t.dataset.tab === startTab) ? startTab : 'quick');
+$('hl').onchange = () => draw();
+$('rotL').onclick = () => { rot = (rot + 3) % 4; draw(); };
+$('rotR').onclick = () => { rot = (rot + 1) % 4; draw(); };
+
+const shade = (rgb, k) => `rgb(${rgb.map(c => Math.round(Math.min(255, c * k)))})`;
+
+function draw() {
+  const cv = $('cv'), g = cv.getContext('2d');
+  g.clearRect(0, 0, cv.width, cv.height);
+  if (!design) return;
+  const [W, H, D] = design.size;
+  // rotate around the vertical axis in 90 degree steps
+  const rp = (x, z) => [[x, z], [D - 1 - z, x], [W - 1 - x, D - 1 - z], [z, W - 1 - x]][rot];
+  const rw = rot % 2 ? D : W, rd = rot % 2 ? W : D;
+  const vs = design.voxels.map(([x, y, z, c, n]) => { const [a, b] = rp(x, z); return [a, y, b, c, n]; });
+  vs.sort((p, q) => (p[0] + p[2]) - (q[0] + q[2]) || p[1] - q[1]);
+  const s = Math.min(cv.width / ((rw + rd) * 0.87 + 2), cv.height / ((rw + rd) * 0.5 + H + 2));
+  const ox = cv.width / 2 - (rw - rd) / 2 * s * 0.87, oy = s * (H + 1);
+  const P = (x, y, z) => [ox + (x - z) * s * 0.87, oy + (x + z) * s * 0.5 - y * s];
+  const hl = $('hl').checked && design.changed > 0;
+  for (const [x, y, z, c, n] of vs) {
+    const rgb = design.palette[c].rgb;
+    const faces = [
+      [[P(x, y + 1, z), P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x, y + 1, z + 1)], 1.1],
+      [[P(x, y + 1, z + 1), P(x + 1, y + 1, z + 1), P(x + 1, y, z + 1), P(x, y, z + 1)], 0.85],
+      [[P(x + 1, y + 1, z), P(x + 1, y + 1, z + 1), P(x + 1, y, z + 1), P(x + 1, y, z)], 0.65],
+    ];
+    for (const [poly, k] of faces) {
+      g.beginPath();
+      poly.forEach(([px, py], i) => i ? g.lineTo(px, py) : g.moveTo(px, py));
+      g.closePath();
+      g.fillStyle = shade(rgb, k); g.fill();
+      if (hl && n) { g.strokeStyle = '#ffd400'; g.lineWidth = 1.2; g.stroke(); }
+    }
+  }
+}
+</script>
+</body>
+</html>
+

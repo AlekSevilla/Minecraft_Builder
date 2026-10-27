@@ -1,0 +1,4 @@
+websockets>=13
+aiohttp>=3.9
+Pillow>=10
+anthropic>=0.84
